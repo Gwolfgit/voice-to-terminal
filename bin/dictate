@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Continuous offline dictation -> types finished phrases into the focused window.
+# Usage: dictate [en|ru|uk] [--print] [--device N] [--list-devices]
+exec "$HOME/.local/share/vosk-talk/venv/bin/python" \
+     "$HOME/.local/share/vosk-talk/dictate.py" "$@"

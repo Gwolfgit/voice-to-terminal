@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Push-to-talk offline voice transcription (Vosk) -> types into focused window.
+# Usage: talk [en|ru|uk] [--print] [--enter] [--delay SEC] [--list-devices]
+#
+# Optionally auto-arms a Bluetooth headset mic before listening: connects it,
+# switches to the HSP/HFP profile (which exposes the mic), makes it the default
+# source, and boosts the gain. To enable, export the headset's MAC:
+#     export TALK_BT_MAC="AA:BB:CC:DD:EE:FF"
+# Leave TALK_BT_MAC unset to just use whatever mic is already the default.
+# Set TALK_NO_BT=1 to force-skip the headset arming.
+
+BT_MAC="${TALK_BT_MAC:-}"
+_mac_underscored="${BT_MAC//:/_}"
+BT_CARD="bluez_card.${_mac_underscored}"
+BT_SRC="bluez_input.${_mac_underscored}.0"
+
+arm_headset() {
+    # only if a MAC was provided and the headset is paired/known
+    [ -n "$BT_MAC" ] || return
+    bluetoothctl info "$BT_MAC" >/dev/null 2>&1 || return
+    if ! bluetoothctl info "$BT_MAC" 2>/dev/null | grep -q "Connected: yes"; then
+        timeout 12 bluetoothctl connect "$BT_MAC" >/dev/null 2>&1
+        sleep 2
+    fi
+    # ensure mic-capable profile
+    if ! pactl list short sources 2>/dev/null | grep -q "$BT_SRC"; then
+        pactl set-card-profile "$BT_CARD" headset-head-unit-msbc >/dev/null 2>&1 \
+          || pactl set-card-profile "$BT_CARD" headset-head-unit >/dev/null 2>&1
+        sleep 2
+    fi
+    if pactl list short sources 2>/dev/null | grep -q "$BT_SRC"; then
+        pactl set-default-source "$BT_SRC"  >/dev/null 2>&1
+        pactl set-source-mute    "$BT_SRC" 0 >/dev/null 2>&1
+        pactl set-source-volume  "$BT_SRC" 160% >/dev/null 2>&1
+    fi
+}
+
+[ -z "$TALK_NO_BT" ] && arm_headset
+
+exec "$HOME/.local/share/vosk-talk/venv/bin/python" \
+     "$HOME/.local/share/vosk-talk/talk.py" "$@"

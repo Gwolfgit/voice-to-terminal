@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Launch the Voice → Terminal control GUI (PyQt5 on system python3).
+exec python3 "$HOME/.local/share/vosk-talk/voice_gui.py" "$@"

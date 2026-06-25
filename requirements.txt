@@ -1,0 +1,5 @@
+# Engine venv (~/.local/share/vosk-talk/venv) — used by the transcription engines.
+# The GUI itself runs on the system python3 with system PyQt5 (see README).
+vosk            # offline transcription models
+sounddevice     # mic capture for the Vosk CLIs
+websocket-client # AssemblyAI Universal-Streaming client

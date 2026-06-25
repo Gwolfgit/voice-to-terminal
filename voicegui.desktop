@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Voice → Terminal
+Comment=Push-to-talk dictation pinned to a Terminator tab
+Exec=voicegui
+Icon=voicegui
+Terminal=false
+Categories=AudioVideo;
+StartupNotify=false

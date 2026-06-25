@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Vosk models (multi-GB — download separately, see README)
+models/
+dl/
+
+# Compiled setuid helper
+tiocsti-inject
+
+# Local secrets / config / state (never commit)
+api_key
+*.key
+config.json
+usage.json
+
+# Scratch
+*.wav
+*.log
+/tmp/
