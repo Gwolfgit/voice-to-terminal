@@ -1,7 +1,9 @@
 # Voice → Terminal
 
-Push-to-talk dictation that streams your speech **straight into a chosen terminal
-tab** — not just the focused window. Pin a Terminator tab once and keep working
+Hands-free dictation that streams your speech **straight into a chosen terminal
+tab** — not just the focused window. Hit Start once and just talk: voice-activity
+detection picks out your speech and transcribes it live as you go (no key to
+hold, no per-phrase button). Pin a Terminator tab once and keep working
 anywhere else while transcribed text flows into that pinned shell (handy for
 talking to a coding-agent CLI). A PyQt5 tray app drives two interchangeable
 transcription engines:
@@ -46,7 +48,7 @@ The pin you choose here stays in sync with the **Dictate** tab in the main windo
 |------|------|
 | `voice_gui.py`     | PyQt5 control panel + tray app (the main entry point) |
 | `aai_print.py`     | AssemblyAI Universal-Streaming engine (`--stream` to stdout) |
-| `talk.py`          | Vosk push-to-talk engine (type or `--print`) |
+| `talk.py`          | Vosk dictation engine (type or `--print`) |
 | `dictate.py`       | Standalone continuous Vosk dictation CLI |
 | `recmeter.py`      | Mic-test recorder with live level metering |
 | `tiocsti-inject.c` | setuid-root helper that injects bytes into your own `/dev/pts/*` |
