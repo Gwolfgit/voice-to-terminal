@@ -2,7 +2,7 @@
 Version=1.0
 Type=Application
 Name=Voice → Terminal
-Comment=Push-to-talk dictation pinned to a Terminator tab
+Comment=Hands-free dictation pinned to a Terminator tab
 Exec=voicegui
 Icon=voicegui
 Terminal=false

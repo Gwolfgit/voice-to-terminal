@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AssemblyAI Universal-Streaming push-to-talk → stdout (voice-GUI engine).
+"""AssemblyAI Universal-Streaming dictation → stdout (voice-GUI engine).
 
 Mirrors the `talk --print` contract so the GUI can drive either engine the same
 way: stream mic audio to AssemblyAI while running, show interim text on stderr

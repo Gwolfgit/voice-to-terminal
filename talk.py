@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Push-to-talk offline transcription with Vosk.
+"""Hands-free offline transcription with Vosk.
 
 Listen on the microphone, show live partial results, and on Ctrl-C finalize the
 transcript. By default the final text is typed into the currently focused X11

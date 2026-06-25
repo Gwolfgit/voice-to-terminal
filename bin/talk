@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Push-to-talk offline voice transcription (Vosk) -> types into focused window.
+# Hands-free offline voice transcription (Vosk) -> types into focused window.
 # Usage: talk [en|ru|uk] [--print] [--enter] [--delay SEC] [--list-devices]
 #
 # Optionally auto-arms a Bluetooth headset mic before listening: connects it,

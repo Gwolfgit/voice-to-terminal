@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Voice → Terminal control GUI.
 
-A PyQt5 control panel for push-to-talk dictation with two interchangeable
+A PyQt5 control panel for hands-free dictation with two interchangeable
 transcription engines:
 
   * Vosk        — fully offline (local models, no network, no key).
