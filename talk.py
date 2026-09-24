@@ -19,6 +19,7 @@ Options:
     --device N      Use input device index N (default: system default).
 """
 import argparse
+import audioop
 import os
 import queue
 import subprocess
@@ -51,11 +52,18 @@ def main():
                    help="with --print: emit each finalized segment on its own "
                         "line as it is produced (live dictation), instead of one "
                         "aggregate transcript at the end")
+    p.add_argument("--noise-floor", type=float, default=None,
+                   help="noise gate threshold in dBFS (e.g. -45): audio frames "
+                        "quieter than this are replaced with silence before "
+                        "recognition, so background noise isn't transcribed")
     args = p.parse_args()
 
     if args.list_devices:
         print(sd.query_devices())
         return 0
+
+    noise_rms = (int(32768 * 10 ** (args.noise_floor / 20.0))
+                 if args.noise_floor is not None else 0)
 
     model_dir = os.path.join(MODELS, args.lang)
     if not os.path.isdir(model_dir):
@@ -88,8 +96,17 @@ def main():
     signal.signal(signal.SIGINT, on_stop)
     signal.signal(signal.SIGTERM, on_stop)
 
+    paused = {"v": False}
+
+    def on_pause_toggle(sig, frame):
+        paused["v"] = not paused["v"]
+        err("[paused]" if paused["v"] else "[resumed]")
+    signal.signal(signal.SIGUSR1, on_pause_toggle)
+
     def consume(data):
         nonlocal last_partial
+        if noise_rms and audioop.rms(data, 2) < noise_rms:
+            data = b"\x00" * len(data)     # gate background noise
         if rec.AcceptWaveform(data):
             seg = json.loads(rec.Result()).get("text", "").strip()
             if seg:
@@ -130,6 +147,8 @@ def main():
                     pass
                 rec_proc["p"] = subprocess.Popen(pcmd, stdout=subprocess.PIPE)
                 continue
+            if paused["v"]:
+                continue
             consume(data)
         try:
             rec_proc["p"].terminate()
@@ -143,6 +162,8 @@ def main():
                 try:
                     data = q.get(timeout=0.2)
                 except queue.Empty:
+                    continue
+                if paused["v"]:
                     continue
                 consume(data)
 

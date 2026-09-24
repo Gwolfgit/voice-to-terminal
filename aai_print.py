@@ -165,6 +165,9 @@ def main():
     p.add_argument("--print", dest="to_stdout", action="store_true")  # default anyway
     p.add_argument("--stream", action="store_true",
                    help="emit each finalized turn on its own line as produced")
+    p.add_argument("--noise-floor", type=float, default=None,
+                   help="noise gate threshold in dBFS (e.g. -45); overrides the "
+                        "automatic noise calibration with a manual threshold")
     args = p.parse_args()
 
     key = load_api_key()
@@ -190,6 +193,13 @@ def main():
             pass
     signal.signal(signal.SIGINT, on_stop)
     signal.signal(signal.SIGTERM, on_stop)
+
+    paused = {"v": False}
+
+    def on_pause_toggle(sig, frame):
+        paused["v"] = not paused["v"]
+        err("[paused]" if paused["v"] else "[resumed]")
+    signal.signal(signal.SIGUSR1, on_pause_toggle)
 
     FRAME = int(SAMPLE_RATE * 0.1) * 2          # 100 ms, s16 mono = 3200 B
     SILENCE = b"\x00" * FRAME                    # sent for sub-threshold frames (noise gate)
@@ -224,7 +234,10 @@ def main():
     # Decide the speech threshold: explicit override, else calibrate the noise
     # floor (your speech into a headset mic is far louder than the background).
     override = os.environ.get("AAI_VAD_RMS")
-    if override:
+    if args.noise_floor is not None:
+        threshold = max(1, int(32768 * 10 ** (args.noise_floor / 20.0)))
+        err(f"[vad threshold={threshold} (noise floor {args.noise_floor} dBFS)]")
+    elif override:
         threshold = int(override)
         err(f"[vad threshold={threshold} (AAI_VAD_RMS)]")
     else:
@@ -267,6 +280,26 @@ def main():
             frame = read_frame()
             if frame is None:
                 break
+            if paused["v"]:
+                # discard audio without processing it; close any open session
+                # (without emitting a partial transcript) so pausing doesn't
+                # keep racking up billable connection time.
+                if session is not None:
+                    err("[idle — closing connection]")
+                    session.stream = False      # suppress mid-phrase emission
+                    session.alive = False
+                    session.q.put(None)
+                    try:
+                        session.ws.close()
+                    except Exception:
+                        pass
+                    with session.lock:
+                        session.partial = ""
+                    bill(session)
+                    session = None
+                    ring.clear()
+                    active, speech_run, idle_run = False, 0, 0
+                continue
             speaking = audioop.rms(frame, 2) > threshold
 
             if session is None or session.closed:

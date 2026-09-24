@@ -5,8 +5,10 @@ Used by the voice GUI's 2-way mic test: manual start/stop (NO timer). Stop with
 SIGINT/SIGTERM to finalize the WAV. parec is killed on stop, so a dead/silent
 source (e.g. a Bluetooth mic that isn't streaming) can never hang the recorder.
 
-Usage:  recmeter.py --out FILE [--source NAME]
+Usage:  recmeter.py --out FILE [--source NAME] [--meter]
 Emits on stderr:  "LEVEL <peak_dBFS>"  every ~100 ms; "[stopped] N bytes, T s".
+With --meter it emits only LEVEL lines and writes no WAV file (live noise-floor
+meter for the GUI).
 """
 import argparse
 import array
@@ -26,8 +28,10 @@ def err(*a):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", required=True)
+    ap.add_argument("--out", default="/tmp/voicegui-rec.wav")
     ap.add_argument("--source", default=None)
+    ap.add_argument("--meter", action="store_true",
+                    help="emit LEVEL lines only; do not write a WAV file")
     a = ap.parse_args()
 
     cmd = ["parec", "--format=s16le", f"--rate={RATE}", "--channels=1",
@@ -36,10 +40,12 @@ def main():
         cmd.append(f"--device={a.source}")
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
-    wf = wave.open(a.out, "wb")
-    wf.setnchannels(1)
-    wf.setsampwidth(2)
-    wf.setframerate(RATE)
+    wf = None
+    if not a.meter:
+        wf = wave.open(a.out, "wb")
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(RATE)
 
     stop = {"v": False}
 
@@ -52,7 +58,7 @@ def main():
     signal.signal(signal.SIGINT, on_stop)
     signal.signal(signal.SIGTERM, on_stop)
 
-    err("[recording]")
+    err("[recording]" if not a.meter else "[metering]")
     chunk = int(RATE * 0.1) * 2     # 100 ms of s16le mono
     total = 0
     try:
@@ -60,8 +66,9 @@ def main():
             data = proc.stdout.read(chunk)
             if not data:
                 break
-            wf.writeframes(data)
-            total += len(data)
+            if wf is not None:
+                wf.writeframes(data)
+                total += len(data)
             s = array.array("h")
             s.frombytes(data)
             peak = max((abs(x) for x in s), default=0)
@@ -72,8 +79,12 @@ def main():
             proc.terminate()
         except Exception:
             pass
-        wf.close()
-    err(f"[stopped] {total} bytes, {total / 2 / RATE:.1f}s")
+        if wf is not None:
+            wf.close()
+    if a.meter:
+        err("[stopped]")
+    else:
+        err(f"[stopped] {total} bytes, {total / 2 / RATE:.1f}s")
     os._exit(0)
 
 
